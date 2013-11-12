@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lifecycle</title>
+  <script type="text/javascript">
+    var lifecycle_websocket;
+    
+    function init()
+    {
+      output = document.getElementById("output");
+      ampel = document.getElementById("traffic_light_display");
+      update_ampel("1");
+      update_message("Keine Verbindung");
+      update_buttons();
+    }
+    
+    function update_message(message)
+    {
+      var old = ampel.firstChild;
+      var pre = document.createElement("pre");
+      pre.style.wordWrap = "break-word";
+      pre.innerHTML = "<b><font face='Arial'>" + message + "</font></b>";
+      if(ampel.firstChild != null)
+        ampel.replaceChild(pre, ampel.firstChild);
+      else
+        ampel.appendChild(pre);
+    }
+    
+    function update_ampel(ampel_id)
+    {
+      var context = document.getElementById('myDrawing').getContext('2d');
+      
+      context.beginPath();
+      context.fillStyle = "black";
+      context.fillRect(65,0,70,210);
+      context.fill();
+      
+      context.beginPath();
+      context.fillStyle = get_color(1, ampel_id);
+      context.arc(100,35,25,0, 2*Math.PI, false);
+      context.fill();
+      
+      context.beginPath();
+      context.fillStyle = get_color(2, ampel_id);
+      context.arc(100,105,25,0, 2*Math.PI, false);
+      context.fill();
+      
+      context.beginPath();
+      context.fillStyle = get_color(3, ampel_id);
+      context.arc(100,175,25,0, 2*Math.PI, false);
+      context.fill();
+    }
+    
+    function get_color(ampel_id, ampel_an_id)
+    {
+      if(ampel_id==1 && ampel_an_id==1)
+        return "red";
+      else if(ampel_id==2 && ampel_an_id==2)
+        return "yellow";
+      else if(ampel_id==3 && ampel_an_id == 3)
+        return "green";
+      else
+        return "grey";
+    }
+    
+    function update_buttons()
+    {
+      document.getElementById("b_open").disabled = isOpen();
+      document.getElementById("b_sendValidMessage").disabled = !isOpen();
+      document.getElementById("b_sendInvalidMessage").disabled = !isOpen();
+      document.getElementById("b_requestClose").disabled = !isOpen();
+      document.getElementById("b_close").disabled = !isOpen();
+    }
+    
+    function isOpen()
+    {
+      return lifecycle_websocket != null && lifecycle_websocket.readyState == lifecycle_websocket.OPEN;
+    }
+    
+    function update_for_message(message)
+    {
+      var display_message = get_display_message(message);
+      var light_index = get_light_index(message);
+      update_ampel(light_index);
+      update_message(display_message);
+    }
+    
+    function get_light_index(message) 
+    {
+      return message.substring(0, 1);
+    }
+            
+    function get_display_message(message) 
+    {
+      return message.substring(2, message.length);
+    }
+    
+    function open_connection()
+    {
+      lifecycle_websocket = new WebSocket("ws://localhost:8080/fhws.masterarbeit.lifecycleWebsocket/lifecycleWebsocket");
+      lifecycle_websocket.onmessage = function (evt)
+                                      {
+                                        update_for_message(evt.data);
+                                        update_buttons();
+                                      };
+      lifecycle_websocket.onclose = function (evt)
+                                    {
+                                      update_buttons();
+                                      update_ampel("1");
+                                    };
+    }
+    
+    function sendValidMessage()
+    {
+      lifecycle_websocket.send("Hello");
+    }
+    
+    function sendInvalidMessage()
+    {
+      lifecycle_websocket.send("Helxxxlo");
+    }
+    
+    function request_close_connection()
+    {
+      lifecycle_websocket.send("Close");
+    }
+    
+    function close_connection()
+    {
+      lifecycle_websocket.close();
+      update_ampel("1");
+      update_message("Client hat die Verbindung geschlossen");
+    }
+  </script>
+</head>
+<body onload="init()">
+   <h1 style="text-align: center;">Lifecycle Ampel</h1>
+  <table style="text-align: left; width: 50px; margin-left: auto; margin-right: auto" border="0">
+    <tbody>
+      <tr>
+        <td style=" text-align: center; vertical-align: top;">
+          <div style="text-align: center;">
+            <form>
+              <input type="button" name="b_open" id="b_open" value="Verbindung öffnen" onclick="open_connection()">
+              <input type="button" name="b_sendValidMessage" id="b_sendValidMessage" value="Gültige Nachricht schicken" onclick="sendValidMessage()">
+              <input type="button" name="b_sendInvalidMessage" id="b_sendInvalidMessage" value="Ungültige Nachricht schicken" onclick="sendInvalidMessage()">
+              <input type="button" name="b_requestClose" id="b_requestClose" value="Serverseitiges Schließen" onclick="request_close_connection()">
+              <input type="button" name="b_close" id="b_close" value="Clientseitiges Schließen" onclick="close_connection()">
+            </form>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style=" text-align: center; vertical-align: top;">
+          <canvas id="myDrawing" width="200" height="210"></canvas>
+            <div id="traffic_light_display"></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div id="output"></div>
+</body>
+</html>

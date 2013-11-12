@@ -1,4 +1,4 @@
-package fhws.masterarbeit.lifecycleWebsocket;
+package fhws.masterarbeit.lifecycleWebsocket.server;
 
 import java.io.IOException;
 
